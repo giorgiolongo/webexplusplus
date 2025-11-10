@@ -10,11 +10,11 @@ Webex++ is a manifest v3 chromium extension that enhances the experience of the 
 - [ ] Setting saving between pages
 
 
-### Google Chrome
+### Google Chrome/Chromium based browsers
 
 * Download the `.zip` file from the [latest release](https://github.com/giorgiolongo/webexplusplus/releases)
 * Extract the zip file
 * Browse to `chrome://extensions`
 * Turn on "Developer mode" on the top right
 * Click "Load unpacked extension..." on the top left
-* Select the folder named `src` from the folder to which your zip file was extracted.
+* Select the folder you just extracted.
