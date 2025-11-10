@@ -1,14 +1,5 @@
 const REGEX = /^https?:\/\/(.+?)\.webex\.com\/(?:recordingservice|webappng)\/sites\/([^\/]+)\/.*?([a-f0-9]{32})[^\?]*(\?.*)?/g
-const UPDATE_URL = "https://api.github.com/repos/jacopo-j/webxdownloader/releases/latest";
-
-function copyLink() {
-    let text = document.getElementById("content");
-    text.disabled = false;
-    text.select();
-    document.execCommand("copy");
-    text.blur();
-    text.disabled = true;
-}
+const UPDATE_URL = "https://api.github.com/repos/giorgiolongo/webexplusplus/releases/latest";
 
 function downloadChat() {
     let download = document.getElementById("download");
@@ -40,7 +31,6 @@ function renderSuccess(title, url, chat) {
     document.getElementById("content").innerText = url;
     document.getElementById("content").dataset.content = url;
     document.getElementById("content").dataset.title = title;
-    document.getElementById("copy").onclick = copyLink;
     if (chat.length > 0) {
         document.getElementById("chat").style.display = "block";
         document.getElementById("download").dataset.content = JSON.stringify(chat);

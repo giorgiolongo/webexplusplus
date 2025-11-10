@@ -1,0 +1,51 @@
+{
+  "name": "Webex++",
+  "description": "Enhancer for Webex ",
+  "homepage_url": "https://github.com/giorgiolongo/webexplusplus",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "permissions": [
+    "downloads",
+    "storage",
+    "tabs",
+    "webRequest",
+    "https://*.webex.com/*",
+    "https://api.github.com/repos/giorgiolongo/webexplusplus/releases/latest"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+  "type": "module"
+  },
+  "content_scripts": [
+    {
+      "run_at" : "document_end",
+      "js": [
+        "src/downloadenabler.js",
+        "src/spacebar.js",
+        "src/sidebar.js"
+      ],
+      "matches": [
+        "*://*.webex.com/*"
+      ]
+    }
+  ],
+  "action": {
+    "default_title": "Webex++",
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "32": "assets/icons/icon32.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
+    }
+  },
+   "icons": {
+    "16": "assets/icons/icon16.png",
+    "32": "assets/icons/icon32.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  },
+    "host_permissions": [
+    "*://*.webex.com/*"
+  ]
+}
