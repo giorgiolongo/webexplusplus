@@ -1,26 +1,26 @@
 function saveOptions() {
-  const autohideEl = document.getElementById("autohide-sidebar");
+  const hideEl   = document.getElementById("hide-useless-elements");
+  const persistEl = document.getElementById("persist-media-settings");
   const data = {};
-  if (autohideEl) data.autohideSidebar = autohideEl.checked;
-  if (Object.keys(data).length > 0) {
-    chrome.storage.local.set(data);
-  }
+  if (hideEl)    data.hideUselessElements  = hideEl.checked;
+  if (persistEl) data.persistMediaSettings = persistEl.checked;
+  if (Object.keys(data).length > 0) chrome.storage.local.set(data);
 }
 
 function restoreOptions() {
-  function setCurrentChoice(result) {
-    // autohide checkbox; default to true when key is absent
-    const autohideEl = document.getElementById("autohide-sidebar");
-    if (autohideEl) {
-      autohideEl.checked = (result.autohideSidebar === undefined) ? true : !!result.autohideSidebar;
-    }
-  }
+  chrome.storage.local.get(["hideUselessElements", "persistMediaSettings"], (result) => {
+    const hideEl = document.getElementById("hide-useless-elements");
+    if (hideEl) hideEl.checked = (result.hideUselessElements === undefined) ? true : !!result.hideUselessElements;
 
-  chrome.storage.local.get(["autohideSidebar"], setCurrentChoice);
+    const persistEl = document.getElementById("persist-media-settings");
+    if (persistEl) persistEl.checked = (result.persistMediaSettings === undefined) ? true : !!result.persistMediaSettings;
+  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   restoreOptions();
-  const autohideEl = document.getElementById("autohide-sidebar");
-  if (autohideEl) autohideEl.addEventListener("click", saveOptions);
+  ["hide-useless-elements", "persist-media-settings"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("click", saveOptions);
+  });
 });

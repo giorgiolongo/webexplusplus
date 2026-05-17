@@ -2,7 +2,7 @@
   "name": "Webex++",
   "description": "Enhancer for Webex ",
   "homepage_url": "https://github.com/giorgiolongo/webexplusplus",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "manifest_version": 3,
   "permissions": [
     "downloads",
@@ -20,9 +20,14 @@
     {
       "run_at" : "document_end",
       "js": [
+        "src/utils.js",
         "src/downloadenabler.js",
         "src/spacebar.js",
-        "src/sidebar.js"
+        "src/sidebar.js",
+        "src/speedslider.js",
+        "src/volumeslider.js",
+        "src/hideuibuttons.js",
+        "src/persistmedia.js"
       ],
       "matches": [
         "*://*.webex.com/*"
