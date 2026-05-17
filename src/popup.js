@@ -58,7 +58,7 @@ function checkUpdates() {
         .then(response => response.json())
         .then(data => {
             // Get latest and current version for the extension
-            const latestVersion = data.tag_name;
+            const latestVersion = data.tag_name.replace(/^v/, '');
             const currentVersion = chrome.runtime.getManifest().version;
 
             if (latestVersion && latestVersion != currentVersion) {
