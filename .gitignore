@@ -1,2 +1,4 @@
 .DS_Store
 macos-rw.dmg
+*.html
+*_files/

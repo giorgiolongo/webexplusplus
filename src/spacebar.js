@@ -6,7 +6,7 @@
             event.preventDefault();
             event.stopPropagation();
             //Control the video player
-            videoElement = document.querySelector('video');
+            const videoElement = document.querySelector('video');
             if (videoElement) {
                 // Toggle play/pause
                 if (videoElement.paused) {

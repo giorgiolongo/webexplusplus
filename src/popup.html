@@ -185,12 +185,24 @@
                 <div id="settings" class="section">
                     <div style="display:flex;justify-content:space-between;align-items:center">
                         <div>
-                            <div style="font-weight:600">Autohide Sidebar</div>
-                            <div class="muted small">Automatically collapse the Webex sidebar on load</div>
+                            <div style="font-weight:600">Nascondi elementi inutili</div>
+                            <div class="muted small">Nasconde la sidebar e i controlli non necessari</div>
                         </div>
 
                         <label class="toggle">
-                            <input id="autohide-sidebar" type="checkbox" checked />
+                            <input id="hide-useless-elements" type="checkbox" checked />
+                            <span class="switch" aria-hidden="true"><span class="knob"></span></span>
+                        </label>
+                    </div>
+
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+                        <div>
+                            <div style="font-weight:600">Ricorda velocità e volume</div>
+                            <div class="muted small">Ripristina velocità e volume all'apertura del player</div>
+                        </div>
+
+                        <label class="toggle">
+                            <input id="persist-media-settings" type="checkbox" checked />
                             <span class="switch" aria-hidden="true"><span class="knob"></span></span>
                         </label>
                     </div>
