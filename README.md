@@ -24,8 +24,8 @@ Click the extension icon to open the popup. Two toggles are available:
 
 | Setting | Default | Description |
 |---|---|---|
-| Nascondi elementi inutili | On | Hides the sidebar and follow-speaker control |
-| Ricorda velocità e volume | On | Persists speed and volume across sessions |
+| Hide useless elements | On | Hides the sidebar and follow-speaker control |
+| Remember speed and volume | On | Persists speed and volume across sessions |
 
 ## Installation
 
