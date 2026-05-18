@@ -4,6 +4,12 @@
   "homepage_url": "https://github.com/giorgiolongo/webexplusplus",
   "version": "2.1.0",
   "manifest_version": 3,
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "webexplusplus@giorgiolongo",
+      "strict_min_version": "128.0"
+    }
+  },
   "permissions": [
     "downloads",
     "storage",
