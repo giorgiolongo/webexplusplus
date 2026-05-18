@@ -7,8 +7,9 @@ A Manifest V3 Chromium extension that enhances the Webex recording player.
 ### Playback controls
 - **Speed slider** — replaces the native speed button with a vertical popup slider (0.5×–3×, steps of 0.25×). Tick marks at 1×, 2×, 3×.
 - **Volume slider** — replaces the native volume button with a vertical popup slider that snaps to 0 / 25 / 50 / 75 / 100%. Speaker icon reflects the current level; turns red and shows a slash when muted.
+- **Zoom slider** — adds a magnifying-glass button that opens a vertical popup slider to zoom the video in (1×–3×, continuous). The zoomed video stays clipped within the player canvas.
 - **Keyboard shortcuts** — `Space` toggles play/pause; `↑` / `↓` increase or decrease playback speed by 0.25×.
-- The speed and volume popups are mutually exclusive — opening one closes the other.
+- The speed, volume, and zoom popups are mutually exclusive — opening one closes the others.
 
 ### UI
 - **Hide useless elements** *(on by default)* — hides the sidebar on load and removes the follow-speaker button.

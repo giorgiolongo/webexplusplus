@@ -1,24 +1,30 @@
 (function () {
-    const MIN = 0.5, MAX = 3, STEP = 0.25;
+    const MIN = 1, MAX = 3, STEP = 0.1;
     const TICKS = [1, 2, 3];
 
-    // Percentage from bottom for a given value (bottom = MIN, top = MAX)
     function bottomPct(v) {
         return ((v - MIN) / (MAX - MIN) * 100).toFixed(3) + '%';
     }
 
-    function formatSpeed(rate) {
-        const r = parseFloat(rate);
-        return (r % 1 === 0 ? r : r.toFixed(2)) + 'X';
+    function formatZoom(zoom) {
+        return parseFloat(zoom).toFixed(1) + 'x';
+    }
+
+    // Magnifying glass with plus sign
+    const P_RING   = 'M13 3a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16z';
+    const P_PLUS_H = 'M9 12h8v2H9z';
+    const P_PLUS_V = 'M12 9h2v8h-2z';
+    const P_HANDLE = 'M20 21.5l1.5-1.5 7.5 7.5-1.5 1.5z';
+
+    function svgIcon(...paths) {
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 32 32" fill="currentcolor" style="display:block;pointer-events:none">${
+            paths.map(d => `<path d="${d}"/>`).join('')
+        }</svg>`;
     }
 
     const CSS = `
-wxp-playback-rate-control {
-    display: none !important;
-}
-
-/* Container — mirrors wxp-volume-control */
-.wxpp-speed-control {
+/* Container — mirrors wxpp-speed-control */
+.wxpp-zoom-control {
     overflow: hidden;
     position: relative;
     z-index: 50;
@@ -27,12 +33,12 @@ wxp-playback-rate-control {
     align-items: center;
     justify-content: center;
 }
-.wxpp-speed-control.expanded {
+.wxpp-zoom-control.expanded {
     overflow: visible;
 }
 
-/* Button — identical to the native wxp-playback-rate-button */
-.wxpp-speed-btn {
+/* Button — identical to wxpp-vol-btn */
+.wxpp-zoom-btn {
     align-items: center;
     background: transparent;
     border: none;
@@ -41,22 +47,19 @@ wxp-playback-rate-control {
     cursor: pointer;
     display: flex;
     height: 32px;
+    width: 32px;
     justify-content: center;
     text-align: center;
     transition: background 0.1s;
-    padding: 0 6px;
-    font-size: 12px;
-    font-family: inherit;
-    font-weight: 600;
-    white-space: nowrap;
-    min-width: 32px;
+    padding: 0;
+    flex-shrink: 0;
 }
-.wxpp-speed-btn:hover {
+.wxpp-zoom-btn:hover {
     background: var(--mds-color-theme-button-secondary-pressed, rgba(255,255,255,0.12));
 }
 
-/* Popup card — mirrors wxp-volume-slider */
-.wxpp-speed-popup {
+/* Popup card — mirrors wxpp-speed-popup */
+.wxpp-zoom-popup {
     background: var(--compatible-color-theme-background-solid-primary-normal,
                     var(--mds-color-theme-background-solid-primary-normal, #1e1e1e));
     border: 1px solid var(--mds-color-theme-outline-secondary-normal, rgba(255,255,255,0.2));
@@ -70,13 +73,13 @@ wxp-playback-rate-control {
     pointer-events: none;
     box-sizing: border-box;
 }
-.wxpp-speed-control.expanded .wxpp-speed-popup {
+.wxpp-zoom-control.expanded .wxpp-zoom-popup {
     opacity: 1;
     pointer-events: auto;
 }
 
-/* Popup arrow — identical to wxp-volume-slider-arrow */
-.wxpp-speed-popup-arrow {
+/* Popup arrow */
+.wxpp-zoom-popup-arrow {
     bottom: -15px;
     height: 16px;
     left: 50%;
@@ -85,7 +88,7 @@ wxp-playback-rate-control {
     transform: translateX(-50%);
     width: 16px;
 }
-.wxpp-speed-popup-arrow::after {
+.wxpp-zoom-popup-arrow::after {
     background-color: var(--mds-color-theme-background-solid-secondary-normal, #1e1e1e);
     border: 1px solid var(--mds-color-theme-outline-secondary-normal, rgba(255,255,255,0.2));
     border-left-color: transparent;
@@ -100,8 +103,8 @@ wxp-playback-rate-control {
     width: 16px;
 }
 
-/* Inner layout: slider track on the left, tick labels on the right */
-.wxpp-speed-inner {
+/* Inner layout */
+.wxpp-zoom-inner {
     display: flex;
     flex-direction: row;
     align-items: stretch;
@@ -109,21 +112,20 @@ wxp-playback-rate-control {
     height: 140px;
 }
 
-/* Track column — mirrors wxp-range-vertical sizing */
-.wxpp-speed-track-col {
+/* Track column */
+.wxpp-zoom-track-col {
     width: 15px;
     position: relative;
     flex-shrink: 0;
 }
 
-/* The custom div-based vertical range — mirrors wxp-range wxp-range-vertical */
-.wxpp-speed-range {
+.wxpp-zoom-range {
     cursor: pointer;
     position: relative;
     height: 100%;
     width: 15px;
 }
-.wxpp-speed-range-bar {
+.wxpp-zoom-range-bar {
     background: var(--mds-color-theme-control-inactive-normal, rgba(255,255,255,0.3));
     position: absolute;
     height: 100%;
@@ -132,7 +134,7 @@ wxp-playback-rate-control {
     width: 2px;
     border-radius: 1px;
 }
-.wxpp-speed-range-progress {
+.wxpp-zoom-range-progress {
     background: var(--mds-color-theme-control-active-normal, #64b4fa);
     position: absolute;
     bottom: 0;
@@ -141,8 +143,7 @@ wxp-playback-rate-control {
     width: 2px;
     border-radius: 1px;
 }
-/* Thumb — identical to wxp-range-point */
-.wxpp-speed-range-point {
+.wxpp-zoom-range-point {
     background: var(--mds-color-theme-background-solid-tertiary-normal, #fff);
     border: 1px solid var(--mds-color-theme-outline-primary-normal, rgba(255,255,255,0.7));
     border-radius: 16px;
@@ -157,12 +158,12 @@ wxp-playback-rate-control {
 }
 
 /* Tick label column */
-.wxpp-speed-tick-col {
+.wxpp-zoom-tick-col {
     position: relative;
     flex: 1;
     min-width: 30px;
 }
-.wxpp-speed-tick {
+.wxpp-zoom-tick {
     position: absolute;
     display: flex;
     align-items: center;
@@ -171,13 +172,13 @@ wxp-playback-rate-control {
     transform: translateY(50%);
     white-space: nowrap;
 }
-.wxpp-speed-tick-line {
+.wxpp-zoom-tick-line {
     width: 5px;
     height: 1px;
     background: var(--mds-color-theme-control-inactive-normal, rgba(255,255,255,0.35));
     flex-shrink: 0;
 }
-.wxpp-speed-tick-label {
+.wxpp-zoom-tick-label {
     font-size: 10px;
     font-family: inherit;
     color: var(--mds-color-theme-text-secondary-normal, rgba(255,255,255,0.55));
@@ -186,72 +187,64 @@ wxp-playback-rate-control {
     `;
 
     function injectStyles() {
-        if (document.getElementById('wxpp-speed-styles')) return;
+        if (document.getElementById('wxpp-zoom-styles')) return;
         const style = document.createElement('style');
-        style.id = 'wxpp-speed-styles';
+        style.id = 'wxpp-zoom-styles';
         style.textContent = CSS;
         document.head.appendChild(style);
     }
 
     function clamp(v) { return Math.min(MAX, Math.max(MIN, v)); }
 
-    function createSpeedControl(video) {
-        // ── Button ──
+    function createZoomControl(video) {
         const container = document.createElement('div');
-        container.className = 'wxpp-speed-control wxp-control-button';
+        container.className = 'wxpp-zoom-control wxp-control-button';
 
         const btn = document.createElement('button');
-        btn.className = 'wxpp-speed-btn';
-        btn.textContent = formatSpeed(video.playbackRate || 1);
+        btn.className = 'wxpp-zoom-btn';
+        btn.title = 'Zoom';
+        btn.innerHTML = svgIcon(P_RING, P_PLUS_H, P_PLUS_V, P_HANDLE);
 
-        // ── Popup ──
         const popup = document.createElement('div');
-        popup.className = 'wxpp-speed-popup';
+        popup.className = 'wxpp-zoom-popup';
 
         const inner = document.createElement('div');
-        inner.className = 'wxpp-speed-inner';
+        inner.className = 'wxpp-zoom-inner';
 
-        // Track column
         const trackCol = document.createElement('div');
-        trackCol.className = 'wxpp-speed-track-col';
+        trackCol.className = 'wxpp-zoom-track-col';
 
         const range = document.createElement('div');
-        range.className = 'wxpp-speed-range';
+        range.className = 'wxpp-zoom-range';
         range.setAttribute('role', 'slider');
         range.setAttribute('tabindex', '0');
         range.setAttribute('aria-valuemin', String(MIN));
         range.setAttribute('aria-valuemax', String(MAX));
-        range.setAttribute('aria-label', 'Playback speed');
+        range.setAttribute('aria-label', 'Zoom');
 
-        const bar = document.createElement('div');
-        bar.className = 'wxpp-speed-range-bar';
-
-        const progress = document.createElement('div');
-        progress.className = 'wxpp-speed-range-progress';
-
-        const point = document.createElement('div');
-        point.className = 'wxpp-speed-range-point';
+        const bar      = document.createElement('div'); bar.className = 'wxpp-zoom-range-bar';
+        const progress = document.createElement('div'); progress.className = 'wxpp-zoom-range-progress';
+        const point    = document.createElement('div'); point.className = 'wxpp-zoom-range-point';
 
         range.appendChild(bar);
         range.appendChild(progress);
         range.appendChild(point);
         trackCol.appendChild(range);
 
-        // Tick label column
         const tickCol = document.createElement('div');
-        tickCol.className = 'wxpp-speed-tick-col';
+        tickCol.className = 'wxpp-zoom-tick-col';
 
         TICKS.forEach(v => {
             const tick = document.createElement('div');
-            tick.className = 'wxpp-speed-tick';
+            tick.className = 'wxpp-zoom-tick';
             tick.style.bottom = bottomPct(v);
 
             const line = document.createElement('div');
-            line.className = 'wxpp-speed-tick-line';
+            line.className = 'wxpp-zoom-tick-line';
 
             const label = document.createElement('span');
-            label.className = 'wxpp-speed-tick-label';
-            label.textContent = v + 'X';
+            label.className = 'wxpp-zoom-tick-label';
+            label.textContent = v + 'x';
 
             tick.appendChild(line);
             tick.appendChild(label);
@@ -259,7 +252,7 @@ wxp-playback-rate-control {
         });
 
         const arrow = document.createElement('div');
-        arrow.className = 'wxpp-speed-popup-arrow';
+        arrow.className = 'wxpp-zoom-popup-arrow';
 
         inner.appendChild(trackCol);
         inner.appendChild(tickCol);
@@ -269,66 +262,57 @@ wxp-playback-rate-control {
         container.appendChild(popup);
 
         // ── State ──
-        let currentRate = clamp(video.playbackRate || 1);
+        let currentZoom = MIN;
         let dragging = false;
 
-        function updateUI(rate) {
-            const pct = bottomPct(rate);
+        function updateUI(zoom) {
+            const pct = bottomPct(zoom);
             point.style.bottom = pct;
             progress.style.height = pct;
-            range.setAttribute('aria-valuenow', String(rate));
-            btn.textContent = formatSpeed(rate);
+            range.setAttribute('aria-valuenow', String(zoom));
         }
-        updateUI(currentRate);
+        updateUI(currentZoom);
 
-        function rateFromY(clientY) {
+        function zoomFromY(clientY) {
             const rect = range.getBoundingClientRect();
-            const relY = rect.bottom - clientY; // distance from bottom
-            const frac = Math.max(0, Math.min(1, relY / rect.height));
-            const raw = MIN + frac * (MAX - MIN);
-            return Math.round(raw / STEP) * STEP;
+            const frac = Math.max(0, Math.min(1, (rect.bottom - clientY) / rect.height));
+            return parseFloat((MIN + frac * (MAX - MIN)).toFixed(3));
         }
 
-        function applyRate(rate) {
-            currentRate = clamp(rate);
-            video.playbackRate = currentRate;
-            updateUI(currentRate);
+        function applyZoom(zoom) {
+            currentZoom = clamp(zoom);
+            if (currentZoom === 1) {
+                video.style.transform = '';
+                video.style.transformOrigin = '';
+                if (video.parentElement) video.parentElement.style.overflow = '';
+            } else {
+                video.style.transform = `scale(${currentZoom})`;
+                video.style.transformOrigin = 'center center';
+                if (video.parentElement) video.parentElement.style.overflow = 'hidden';
+            }
+            updateUI(currentZoom);
         }
 
-        // Mouse drag
         range.addEventListener('mousedown', (e) => {
             e.preventDefault();
             dragging = true;
-            applyRate(rateFromY(e.clientY));
+            applyZoom(zoomFromY(e.clientY));
         });
         document.addEventListener('mousemove', (e) => {
-            if (!dragging) return;
-            applyRate(rateFromY(e.clientY));
+            if (dragging) applyZoom(zoomFromY(e.clientY));
         });
         document.addEventListener('mouseup', () => { dragging = false; });
 
-        // Keyboard on the range div
         range.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp')   { e.preventDefault(); applyRate(currentRate + STEP); }
-            if (e.key === 'ArrowDown') { e.preventDefault(); applyRate(currentRate - STEP); }
+            if (e.key === 'ArrowUp')   { e.preventDefault(); applyZoom(currentZoom + STEP); }
+            if (e.key === 'ArrowDown') { e.preventDefault(); applyZoom(currentZoom - STEP); }
         });
 
-        // Sync if page changes rate externally
-        video.addEventListener('ratechange', () => {
-            if (!dragging && Math.abs(video.playbackRate - currentRate) > 0.01) {
-                currentRate = clamp(video.playbackRate);
-                updateUI(currentRate);
-            }
-        });
-
-        // Toggle popup on button click
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            document.querySelectorAll('.wxpp-vol-control, .wxpp-zoom-control').forEach(el => el.classList.remove('expanded'));
+            document.querySelectorAll('.wxpp-vol-control, .wxpp-speed-control').forEach(el => el.classList.remove('expanded'));
             container.classList.toggle('expanded');
         });
-
-        // Close on outside click
         document.addEventListener('click', (e) => {
             if (!container.contains(e.target)) container.classList.remove('expanded');
         });
@@ -336,15 +320,18 @@ wxp-playback-rate-control {
         return container;
     }
 
-    function ensureSpeedControl(toolbar, nativeControl, video) {
-        if (toolbar.querySelector('.wxpp-speed-control')) return;
-        const ctrl = createSpeedControl(video);
-        if (nativeControl.nextSibling) {
-            toolbar.insertBefore(ctrl, nativeControl.nextSibling);
+    function ensureZoomControl(toolbar, video) {
+        if (toolbar.querySelector('.wxpp-zoom-control')) return;
+        const ctrl = createZoomControl(video);
+        const speedCtrl = toolbar.querySelector('.wxpp-speed-control');
+        if (speedCtrl && speedCtrl.nextSibling) {
+            toolbar.insertBefore(ctrl, speedCtrl.nextSibling);
+        } else if (speedCtrl) {
+            toolbar.appendChild(ctrl);
         } else {
             toolbar.appendChild(ctrl);
         }
-        console.log('Webex++: speed slider injected');
+        console.log('Webex++: zoom slider injected');
     }
 
     async function init() {
@@ -352,27 +339,15 @@ wxp-playback-rate-control {
         if (!nativeControl) return;
         const video = await wxppWait('video');
         if (!video) return;
-        _video = video;
         const toolbar = nativeControl.parentElement;
         if (!toolbar) return;
 
         injectStyles();
-        ensureSpeedControl(toolbar, nativeControl, video);
+        ensureZoomControl(toolbar, video);
 
-        const obs = new MutationObserver(() => ensureSpeedControl(toolbar, nativeControl, video));
+        const obs = new MutationObserver(() => ensureZoomControl(toolbar, video));
         obs.observe(toolbar, { childList: true });
     }
-
-    let _video = null;
-    document.addEventListener('keydown', (e) => {
-        if (e.code !== 'ArrowUp' && e.code !== 'ArrowDown') return;
-        if (!_video) _video = document.querySelector('video');
-        if (!_video) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const next = clamp(Math.round((_video.playbackRate + (e.code === 'ArrowUp' ? STEP : -STEP)) / STEP) * STEP);
-        _video.playbackRate = next;
-    }, true);
 
     window.addEventListener('load', init);
 })();
