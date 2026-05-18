@@ -330,7 +330,7 @@ wxp-volume-control {
 
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            document.querySelectorAll('.wxpp-speed-control').forEach(el => el.classList.remove('expanded'));
+            document.querySelectorAll('.wxpp-speed-control, .wxpp-zoom-control').forEach(el => el.classList.remove('expanded'));
             container.classList.toggle('expanded');
         });
         document.addEventListener('click', (e) => {
