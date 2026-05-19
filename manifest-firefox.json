@@ -7,7 +7,11 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "webexplusplus@giorgiolongo",
-      "strict_min_version": "128.0"
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": ["none"],
+        "optional": []
+      }
     }
   },
   "permissions": [
@@ -17,8 +21,7 @@
     "webRequest"
   ],
   "background": {
-    "service_worker": "src/background.js",
-    "type": "module"
+    "scripts": ["src/background.js"]
   },
   "content_scripts": [
     {
@@ -50,13 +53,13 @@
       "128": "assets/icons/icon128.png"
     }
   },
-   "icons": {
+  "icons": {
     "16": "assets/icons/icon16.png",
     "32": "assets/icons/icon32.png",
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
   },
-    "host_permissions": [
+  "host_permissions": [
     "*://*.webex.com/*",
     "https://api.github.com/repos/giorgiolongo/webexplusplus/releases/latest"
   ]
