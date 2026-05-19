@@ -321,10 +321,14 @@ wxp-volume-control {
             if (e.key === 'ArrowDown') { e.preventDefault(); applyVal(currentVal - SNAP); }
         });
 
+        let volChangeTimer = null;
         video.addEventListener('volumechange', () => {
             if (!dragging) {
-                const v = snapTo25(toSlider(video));
-                if (v !== currentVal) { currentVal = v; updateUI(currentVal); }
+                clearTimeout(volChangeTimer);
+                volChangeTimer = setTimeout(() => {
+                    const v = snapTo25(toSlider(video));
+                    if (v !== currentVal) { currentVal = v; updateUI(v); }
+                }, 100);
             }
         });
 
@@ -332,6 +336,10 @@ wxp-volume-control {
             e.stopPropagation();
             document.querySelectorAll('.wxpp-speed-control, .wxpp-zoom-control').forEach(el => el.classList.remove('expanded'));
             container.classList.toggle('expanded');
+            if (container.classList.contains('expanded')) {
+                const v = snapTo25(toSlider(video));
+                if (v !== currentVal) { currentVal = v; updateUI(currentVal); }
+            }
         });
         document.addEventListener('click', (e) => {
             if (!container.contains(e.target)) container.classList.remove('expanded');

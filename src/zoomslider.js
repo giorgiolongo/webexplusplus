@@ -1,6 +1,7 @@
 (function () {
-    const MIN = 1, MAX = 3, STEP = 0.1;
-    const TICKS = [1, 2, 3];
+    const MIN = 1, MAX = 2, STEP = 0.1;
+    const TICKS = [1, 1.5, 2];
+    const KEY_ZOOM = 'savedZoom';
 
     function bottomPct(v) {
         return ((v - MIN) / (MAX - MIN) * 100).toFixed(3) + '%';
@@ -264,6 +265,8 @@
         // ── State ──
         let currentZoom = MIN;
         let dragging = false;
+        let persistEnabled = false;
+        let saveTimer = null;
 
         function updateUI(zoom) {
             const pct = bottomPct(zoom);
@@ -291,7 +294,20 @@
                 if (video.parentElement) video.parentElement.style.overflow = 'hidden';
             }
             updateUI(currentZoom);
+            if (persistEnabled) {
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(() => chrome.storage.local.set({ [KEY_ZOOM]: currentZoom }), 600);
+            }
         }
+
+        wxppEnabled('persistMediaSettings', (enabled) => {
+            persistEnabled = enabled;
+            if (enabled) {
+                chrome.storage.local.get(KEY_ZOOM, (r) => {
+                    if (r[KEY_ZOOM] !== undefined) applyZoom(r[KEY_ZOOM]);
+                });
+            }
+        });
 
         range.addEventListener('mousedown', (e) => {
             e.preventDefault();
