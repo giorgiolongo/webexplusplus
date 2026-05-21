@@ -7,7 +7,7 @@ A Manifest V3 Chromium/Firefox extension that enhances the Webex recording playe
 ### Playback controls
 - **Speed slider** — replaces the native speed button with a vertical popup slider (0.5×–3×, steps of 0.25×). Tick marks at 1×, 2×, 3×.
 - **Volume slider** — replaces the native volume button with a vertical popup slider that snaps to 0 / 25 / 50 / 75 / 100%. Speaker icon reflects the current level; turns red and shows a slash when muted.
-- **Zoom slider** — adds a magnifying-glass button that opens a vertical popup slider to zoom the video in (1×–2×, steps of 0.1×). Tick marks at 1×, 1.5×, 2×. The zoomed video stays clipped within the player canvas.
+- **Zoom slider** — adds a magnifying-glass button that opens a popup with a 16:9 minimap and a horizontal zoom slider (1×–2×, steps of 0.1×). The minimap shows the full video as a gray rectangle; a blue rectangle represents the currently visible portion and can be dragged to pan anywhere within the video. Tick marks at 1×, 1.5×, 2×. The zoomed video stays clipped within the player canvas.
 - **Keyboard shortcuts** — `Space` toggles play/pause; `↑` / `↓` increase or decrease playback speed by 0.25×.
 - The speed, volume, and zoom popups are mutually exclusive — opening one closes the others.
 
@@ -47,6 +47,11 @@ Click the extension icon to open the popup. Three toggles are available:
 > The extension stays active until Firefox is closed. To make it permanent, the extension must be signed by Mozilla — submit it to [AMO](https://addons.mozilla.org/developers/) or use Firefox Developer Edition / Nightly with `xpinstall.signatures.required` set to `false` in `about:config`.
 
 ## Changelog
+
+### v2.3.0
+- **Zoom**: redesigned popup — 16:9 minimap on top, horizontal slider at the bottom; both share the same width for a cleaner look
+- **Zoom**: added pan control — drag the blue rectangle in the minimap to choose which part of the zoomed video to view; panning reaches the full video boundaries
+- **Zoom**: pan position is persisted alongside zoom level (requires "Remember speed and volume" to be on)
 
 ### v2.2.0
 - **New**: estimated end time — live countdown displayed next to the time bar, accounting for current playback speed
