@@ -12,70 +12,67 @@
 
     if (AUTH_PARAMS) API_URL += AUTH_PARAMS;
 
-    // Always hide the native download button — our button replaces it
-    const hideStyle = document.createElement('style');
-    hideStyle.textContent = '.icon-mds-download_bold { display: none !important; }';
-    (document.head || document.documentElement).appendChild(hideStyle);
+    // Styles: hide native download button + download dropdown menu
+    const wxppStyle = document.createElement('style');
+    wxppStyle.textContent = `
+.icon-mds-download_bold { display: none !important; }
 
-    /**
-     * Create the download button to add to the Webex video page.
-     * @param {string} downloadURL URL of the video to download.
-     * @param {string} savepath Path where save the recording.
-     */
-    function createDownloadButton(downloadURL, savepath) {
-        // Create the button
-        const i = document.createElement("i");
-        i.setAttribute("title", "Download");
-        i.setAttribute("tabindex", "0")
-        i.setAttribute("role", "button");
-        i.setAttribute("id", "playerDownload");
-        i.setAttribute("aria-label", `Download recording: ${savepath}`);
-        i.classList.add("icon-download", "recordingDownload");
-
-        // Add the onClick and onKeyPress events
-        const downloadMessage = {
-            downloadURL: downloadURL,
-            savepath: savepath
-        };
-        i.addEventListener("click", () => chrome.runtime.sendMessage(downloadMessage));
-        i.addEventListener("keypress", () => chrome.runtime.sendMessage(downloadMessage));
-
-        return i;
-    }
+.wxpp-dl-menu {
+    position: fixed !important;
+    background: #1e1e1e !important;
+    border: 1px solid rgba(255,255,255,0.20) !important;
+    border-radius: 8px !important;
+    padding: 4px !important;
+    z-index: 999999 !important;
+    min-width: 175px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.55) !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+.wxpp-dl-option {
+    display: block !important;
+    width: 100% !important;
+    padding: 9px 14px !important;
+    color: rgba(255,255,255,0.88) !important;
+    font-size: 13px !important;
+    cursor: pointer !important;
+    border-radius: 5px !important;
+    box-sizing: border-box !important;
+    background: transparent !important;
+    border: none !important;
+    text-align: left !important;
+}
+.wxpp-dl-option:hover { background: rgba(255,255,255,0.10) !important; }
+.wxpp-dl-sep {
+    display: block !important;
+    margin: 3px 8px !important;
+    height: 1px !important;
+    background: rgba(255,255,255,0.12) !important;
+}
+    `;
+    (document.head || document.documentElement).appendChild(wxppStyle);
 
     /**
      * Process a JSON-formatted response obtained from a WebEx page.
      */
     function parseParametersFromResponse(response) {
-        // Alias used to centralize response values
         const streamOption = response["mp4StreamOption"];
 
-        // get the new endpoint that can be (ab)used to download the video
-        // It's very fast if Multi-threading download is supported (for example with aria2c downloader), but for now does not work on browsers
-        // On Chrome it's possible to enable it going to chrome://flags/#enable-parallel-downloading
-        const fallbackPlaySrc = response['fallbackPlaySrc']
+        const fallbackPlaySrc = response['fallbackPlaySrc'];
+        const host            = streamOption["host"];
+        const recordingDir    = streamOption["recordingDir"];
+        const timestamp       = streamOption["timestamp"];
+        const token           = streamOption["token"];
+        const xmlName         = streamOption["xmlName"];
+        const playbackOption  = streamOption["playbackOption"];
+        const recordName      = response["recordName"];
 
-        // Get the data we need to get the video stream
-        const host = streamOption["host"];
-        const recordingDir = streamOption["recordingDir"];
-        const timestamp = streamOption["timestamp"];
-        const token = streamOption["token"];
-        const xmlName = streamOption["xmlName"];
-        const playbackOption = streamOption["playbackOption"];
-
-        // Get the name of the recording
-        const recordName = response["recordName"];
+        // Audio MP3 URL — present when Webex generates a separate audio track
+        const audioURL = response.downloadRecordingInfo?.downloadInfo?.audioURL || null;
 
         return {
-            host,
-            recordingDir,
-            timestamp,
-            token,
-            xmlName,
-            playbackOption,
-            recordName,
-            fallbackPlaySrc
-        }
+            host, recordingDir, timestamp, token, xmlName,
+            playbackOption, recordName, fallbackPlaySrc, audioURL
+        };
     }
 
     function sanitizeFilename(filename) {
@@ -83,35 +80,94 @@
         return filename.replaceAll(allowedChars, "_");
     }
 
+    function sendDownload(url, savepath) {
+        chrome.runtime.sendMessage({ downloadURL: url, savepath });
+    }
+
+    /**
+     * Create the download button.
+     * - No audio URL: clicking immediately downloads the video (original behaviour).
+     * - Audio URL present: clicking opens a small dropdown to choose MP4 or MP3.
+     */
+    function createDownloadButton(videoURL, videoName, audioURL, audioName) {
+        const i = document.createElement("i");
+        i.setAttribute("title", "Download");
+        i.setAttribute("tabindex", "0");
+        i.setAttribute("role", "button");
+        i.setAttribute("id", "playerDownload");
+        i.setAttribute("aria-label", `Download recording: ${videoName}`);
+        i.classList.add("icon-download", "recordingDownload");
+
+        if (!audioURL) {
+            // No audio — download video directly, same as before
+            i.addEventListener("click",    () => sendDownload(videoURL, videoName));
+            i.addEventListener("keypress", () => sendDownload(videoURL, videoName));
+            return i;
+        }
+
+        // Build a dropdown menu appended to body (avoids clipping by parent overflow)
+        const menu = document.createElement("div");
+        menu.className = "wxpp-dl-menu";
+        menu.style.display = "none";
+
+        function makeOption(label, url, filename) {
+            const btn = document.createElement("button");
+            btn.className = "wxpp-dl-option";
+            btn.textContent = label;
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                menu.style.display = "none";
+                sendDownload(url, filename);
+            });
+            return btn;
+        }
+
+        menu.appendChild(makeOption("Download video (MP4)", videoURL, videoName));
+
+        const sep = document.createElement("span");
+        sep.className = "wxpp-dl-sep";
+        menu.appendChild(sep);
+
+        menu.appendChild(makeOption("Download audio (MP3)", audioURL, audioName));
+        document.body.appendChild(menu);
+
+        function openMenu(e) {
+            e.stopPropagation();
+            if (menu.style.display !== "none") {
+                menu.style.display = "none";
+                return;
+            }
+            const rect = i.getBoundingClientRect();
+            menu.style.top  = (rect.bottom + 6) + "px";
+            menu.style.left = (rect.left + rect.width / 2) + "px";
+            menu.style.transform = "translateX(-50%)";
+            menu.style.display = "block";
+        }
+
+        i.addEventListener("click",    openMenu);
+        i.addEventListener("keypress", openMenu);
+        document.addEventListener("click", () => { menu.style.display = "none"; });
+
+        return i;
+    }
+
     /**
      * Callback used by a MutationObserver object in a
      * WebEx page containing a registration to download.
      */
     function mutationCallback(_mutationArray, observer) {
-        // Check if the change is the one we want
-        // Otherwise it returns (fast fail)
-        const playButtons = document.getElementsByClassName("recordingTitle"); // Recording title
+        const playButtons = document.getElementsByClassName("recordingTitle");
         if (!playButtons.length) return;
 
-        // Disconnect this observer to avoid
-        // triggering the DOM change detection event
         observer.disconnect();
 
-        chrome.runtime.sendMessage({
-                fetchJson: API_URL,
-                password: PASSWORD
-            },
+        chrome.runtime.sendMessage(
+            { fetchJson: API_URL, password: PASSWORD },
             (response) => {
-                // Save the response from the page
                 API_RESPONSE = response;
-
-                // Get the useful parameters from the received response
-                const params = parseParametersFromResponse(response);
-
-                // Add the download button
-                addDownloadButtonToPage(params);
+                addDownloadButtonToPage(parseParametersFromResponse(response));
             }
-        )
+        );
     }
 
     /**
@@ -119,24 +175,21 @@
      * @param {Object} params
      */
     function addDownloadButtonToPage(params) {
-        // Do not add the button if already present
-        const downloadButtons = document.getElementsByClassName("icon-download")
-        if (downloadButtons.length) return;
+        if (document.getElementById('playerDownload')) return;
 
+        const headers = document.getElementsByClassName('recordingHeader');
+        if (!headers.length) return;
 
-        // Set the recording name as the save name
-        const savename = `${sanitizeFilename(params.recordName)}.mp4`;
+        const baseName  = sanitizeFilename(params.recordName);
+        const videoName = `${baseName}.mp4`;
+        const audioName = `${baseName}.mp3`;
 
-        // Compose the download link of the video
-        const downloadURL = params.fallbackPlaySrc;
-
-        // Create the download button
-        const downloadButton = createDownloadButton(downloadURL.toString(), savename);
-
-        // Get the buttons on the viewer bar and add the download button
-        const titleDivs = document.getElementsByClassName('recordingHeader');
-        titleDivs[0].appendChild(downloadButton);
-    };
+        const btn = createDownloadButton(
+            params.fallbackPlaySrc, videoName,
+            params.audioURL,        audioName
+        );
+        headers[0].appendChild(btn);
+    }
 
     // Add a listener used to receive the password for the WebEx account
     chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
@@ -146,9 +199,5 @@
 
     // Create an observer for the DOM
     const observer = new MutationObserver(mutationCallback);
-
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
+    observer.observe(document.body, { childList: true, subtree: true });
 })();
