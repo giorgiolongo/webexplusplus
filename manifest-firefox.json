@@ -2,7 +2,7 @@
   "name": "Webex++",
   "description": "Enhancer for Webex ",
   "homepage_url": "https://github.com/giorgiolongo/webexplusplus",
-  "version": "2.2.0",
+  "version": "2.4.0",
   "manifest_version": 3,
   "browser_specific_settings": {
     "gecko": {
