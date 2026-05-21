@@ -1,19 +1,19 @@
 (function () {
-    const MAX = 100, SNAP = 25;
+    const MAX = 200, SNAP = 25;
+    const KEY_GAIN = 'savedVolumeGain';
 
     const TICKS = [
-        { v: 0,   label: '0%'  },
-        { v: 25,  label: null  },
-        { v: 50,  label: '50%' },
-        { v: 75,  label: null  },
-        { v: 100, label: '100%'},
+        { v: 0,   label: '0%'   },
+        { v: 50,  label: null   },
+        { v: 100, label: '100%' },
+        { v: 150, label: null   },
+        { v: 200, label: '200%' },
     ];
 
     // SVG sub-paths extracted from wxp-icon-speaker-bold
-    const P_CONE  = 'M17.075 3.115a1.49 1.49 0 0 0-1.62.31L8.598 10H5a3.003 3.003 0 0 0-3 3v6a3.003 3.003 0 0 0 3 3h3.598l6.841 6.56A1.5 1.5 0 0 0 18 27.498V4.5a1.5 1.5 0 0 0-.925-1.386M16 26.325l-6.308-6.047A1 1 0 0 0 9 20H5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h4c.258 0 .506-.1.692-.279L16 5.672z';
+    const P_CONE   = 'M17.075 3.115a1.49 1.49 0 0 0-1.62.31L8.598 10H5a3.003 3.003 0 0 0-3 3v6a3.003 3.003 0 0 0 3 3h3.598l6.841 6.56A1.5 1.5 0 0 0 18 27.498V4.5a1.5 1.5 0 0 0-.925-1.386M16 26.325l-6.308-6.047A1 1 0 0 0 9 20H5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h4c.258 0 .506-.1.692-.279L16 5.672z';
     const P_WAVE_S = 'M21.273 10.813a1 1 0 0 0 .04 1.413A5.15 5.15 0 0 1 23 15.995a5.21 5.21 0 0 1-1.687 3.778 1 1 0 1 0 1.374 1.453 7.064 7.064 0 0 0 0-10.453 1 1 0 0 0-1.414.04';
     const P_WAVE_L = 'M27.02 9.272a1 1 0 0 0-1.373 1.455A7.18 7.18 0 0 1 28 15.995a7.28 7.28 0 0 1-2.354 5.278 1 1 0 1 0 1.374 1.453A9.26 9.26 0 0 0 30 16.004a9.16 9.16 0 0 0-2.98-6.732';
-    // Diagonal slash across the full icon to indicate mute
     const P_SLASH  = 'M25 4 L28 7 L7 28 L4 25Z';
 
     function svgIcon(...paths) {
@@ -24,8 +24,8 @@
 
     function getIcon(val) {
         if (val === 0)   return svgIcon(P_CONE, P_SLASH);
-        if (val <= 25)   return svgIcon(P_CONE);
-        if (val <= 50)   return svgIcon(P_CONE, P_WAVE_S);
+        if (val <= 50)   return svgIcon(P_CONE);
+        if (val <= 100)  return svgIcon(P_CONE, P_WAVE_S);
         return svgIcon(P_CONE, P_WAVE_S, P_WAVE_L);
     }
 
@@ -177,6 +177,17 @@ wxp-volume-control {
     box-sizing: border-box;
 }
 
+/* Dashed line at 100% to mark the amplification threshold */
+.wxpp-vol-range-100 {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 50%;
+    width: 8px;
+    height: 1px;
+    background: rgba(255,255,255,0.45);
+}
+
 .wxpp-vol-tick-col {
     position: relative;
     flex: 1;
@@ -235,16 +246,19 @@ wxp-volume-control {
         range.setAttribute('role', 'slider');
         range.setAttribute('tabindex', '0');
         range.setAttribute('aria-valuemin', '0');
-        range.setAttribute('aria-valuemax', '100');
+        range.setAttribute('aria-valuemax', '200');
         range.setAttribute('aria-label', 'Volume');
 
         const bar      = document.createElement('div'); bar.className = 'wxpp-vol-range-bar';
         const progress = document.createElement('div'); progress.className = 'wxpp-vol-range-progress';
         const point    = document.createElement('div'); point.className = 'wxpp-vol-range-point';
+        // Visual marker at the 100% boundary
+        const mark100  = document.createElement('div'); mark100.className = 'wxpp-vol-range-100';
 
         range.appendChild(bar);
         range.appendChild(progress);
         range.appendChild(point);
+        range.appendChild(mark100);
         trackCol.appendChild(range);
 
         const tickCol = document.createElement('div');
@@ -279,13 +293,35 @@ wxp-volume-control {
         container.appendChild(btn);
         container.appendChild(popup);
 
-        // ── State ──
+        // ── Web Audio state ──
+        let audioCtx = null;
+        let gainNode = null;
+
+        function ensureAudio() {
+            if (gainNode) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const src = audioCtx.createMediaElementSource(video);
+                gainNode = audioCtx.createGain();
+                src.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                // Take over volume from native element
+                video.muted  = false;
+                video.volume = 1;
+            } catch (e) {
+                console.warn('Webex++: Web Audio unavailable', e);
+            }
+        }
+
+        // ── Slider state ──
         let currentVal = snapTo25(toSlider(video));
         let dragging = false;
+        let persistEnabled = false;
+        let saveTimer = null;
 
         function updateUI(val) {
             const pct = bottomPct(val);
-            point.style.bottom = pct;
+            point.style.bottom  = pct;
             progress.style.height = pct;
             range.setAttribute('aria-valuenow', String(val));
             btn.innerHTML = getIcon(val);
@@ -301,10 +337,40 @@ wxp-volume-control {
 
         function applyVal(val) {
             currentVal = snapTo25(val);
-            video.volume = currentVal / 100;
-            video.muted  = currentVal === 0;
+
+            ensureAudio();
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
+            if (gainNode) {
+                gainNode.gain.value = currentVal / 100;
+                video.volume = 1;
+                video.muted  = false;
+            } else {
+                // Fallback when Web Audio is unavailable: native volume, capped at 100%
+                video.volume = Math.min(currentVal, 100) / 100;
+                video.muted  = currentVal === 0;
+            }
+
             updateUI(currentVal);
+
+            if (persistEnabled) {
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(() => chrome.storage.local.set({ [KEY_GAIN]: currentVal }), 600);
+            }
         }
+
+        wxppEnabled('persistMediaSettings', (enabled) => {
+            persistEnabled = enabled;
+            if (enabled) {
+                chrome.storage.local.get(KEY_GAIN, (r) => {
+                    if (r[KEY_GAIN] !== undefined) {
+                        currentVal = snapTo25(r[KEY_GAIN]);
+                        updateUI(currentVal);
+                        // AudioContext requires a user gesture — will be wired on first interaction
+                    }
+                });
+            }
+        });
 
         range.addEventListener('mousedown', (e) => {
             e.preventDefault();
@@ -321,9 +387,10 @@ wxp-volume-control {
             if (e.key === 'ArrowDown') { e.preventDefault(); applyVal(currentVal - SNAP); }
         });
 
+        // Sync slider if native volume changes externally (only before Web Audio takes over)
         let volChangeTimer = null;
         video.addEventListener('volumechange', () => {
-            if (!dragging) {
+            if (!dragging && !gainNode) {
                 clearTimeout(volChangeTimer);
                 volChangeTimer = setTimeout(() => {
                     const v = snapTo25(toSlider(video));
@@ -336,7 +403,8 @@ wxp-volume-control {
             e.stopPropagation();
             document.querySelectorAll('.wxpp-speed-control, .wxpp-zoom-control').forEach(el => el.classList.remove('expanded'));
             container.classList.toggle('expanded');
-            if (container.classList.contains('expanded')) {
+            // Sync to native volume only if Web Audio hasn't taken over yet
+            if (container.classList.contains('expanded') && !gainNode) {
                 const v = snapTo25(toSlider(video));
                 if (v !== currentVal) { currentVal = v; updateUI(currentVal); }
             }
