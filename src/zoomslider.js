@@ -2,13 +2,11 @@
     const MIN = 1, MAX = 2, STEP = 0.1;
     const TICKS = [1, 1.5, 2];
     const KEY_ZOOM = 'savedZoom';
+    const KEY_PAN  = 'savedZoomPan';
+    const MM_W = 160, MM_H = 90;   // 16:9
 
-    function bottomPct(v) {
+    function leftPct(v) {
         return ((v - MIN) / (MAX - MIN) * 100).toFixed(3) + '%';
-    }
-
-    function formatZoom(zoom) {
-        return parseFloat(zoom).toFixed(1) + 'x';
     }
 
     // Magnifying glass with plus sign
@@ -24,7 +22,7 @@
     }
 
     const CSS = `
-/* Container — mirrors wxpp-speed-control */
+/* Container */
 .wxpp-zoom-control {
     overflow: hidden;
     position: relative;
@@ -38,7 +36,7 @@
     overflow: visible;
 }
 
-/* Button — identical to wxpp-vol-btn */
+/* Button */
 .wxpp-zoom-btn {
     align-items: center;
     background: transparent;
@@ -59,7 +57,7 @@
     background: var(--mds-color-theme-button-secondary-pressed, rgba(255,255,255,0.12));
 }
 
-/* Popup card — mirrors wxpp-speed-popup */
+/* Popup card */
 .wxpp-zoom-popup {
     background: var(--compatible-color-theme-background-solid-primary-normal,
                     var(--mds-color-theme-background-solid-primary-normal, #1e1e1e));
@@ -69,7 +67,7 @@
     left: 50%;
     transform: translateX(-50%);
     opacity: 0;
-    padding: 15px 12px;
+    padding: 12px;
     position: absolute;
     pointer-events: none;
     box-sizing: border-box;
@@ -104,86 +102,114 @@
     width: 16px;
 }
 
-/* Inner layout */
+/* Inner layout — column: minimap on top, horizontal slider below */
 .wxpp-zoom-inner {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: stretch;
-    gap: 8px;
-    height: 140px;
+    gap: 10px;
+    width: ${MM_W}px;
 }
 
-/* Track column */
-.wxpp-zoom-track-col {
-    width: 15px;
+/* Minimap */
+.wxpp-zoom-minimap {
+    width: ${MM_W}px;
+    height: ${MM_H}px;
     position: relative;
+    background: var(--mds-color-theme-background-solid-secondary-normal, rgba(255,255,255,0.14));
+    border-radius: 5px;
+    flex-shrink: 0;
+    cursor: crosshair;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+}
+
+/* Blue rectangle — visible portion of the video */
+.wxpp-zoom-minimap-view {
+    position: absolute;
+    background: #65B4FA;
+    border-radius: 3px;
+    opacity: 0.70;
+    cursor: grab;
+    box-sizing: border-box;
+    min-width: 4px;
+    min-height: 4px;
+    user-select: none;
+    transition: opacity 0.1s;
+}
+.wxpp-zoom-minimap-view.dragging {
+    cursor: grabbing;
+    opacity: 0.90;
+}
+
+/* Horizontal slider */
+.wxpp-zoom-hslider {
+    position: relative;
+    height: 20px;
+    cursor: pointer;
     flex-shrink: 0;
 }
-
-.wxpp-zoom-range {
-    cursor: pointer;
-    position: relative;
-    height: 100%;
-    width: 15px;
-}
-.wxpp-zoom-range-bar {
-    background: var(--mds-color-theme-control-inactive-normal, rgba(255,255,255,0.3));
+.wxpp-zoom-hslider-bar {
+    background: var(--mds-color-theme-control-inactive-normal, rgba(255,255,255,0.28));
     position: absolute;
-    height: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 2px;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
     border-radius: 1px;
+    transform: translateY(-50%);
 }
-.wxpp-zoom-range-progress {
+.wxpp-zoom-hslider-progress {
     background: var(--mds-color-theme-control-active-normal, #64b4fa);
     position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 2px;
+    top: 50%;
+    left: 0;
+    height: 2px;
     border-radius: 1px;
+    transform: translateY(-50%);
+    width: 0;
 }
-.wxpp-zoom-range-point {
+.wxpp-zoom-hslider-point {
     background: var(--mds-color-theme-background-solid-tertiary-normal, #fff);
     border: 1px solid var(--mds-color-theme-outline-primary-normal, rgba(255,255,255,0.7));
-    border-radius: 16px;
+    border-radius: 50%;
     cursor: pointer;
-    height: 16px;
-    width: 16px;
+    height: 14px;
+    width: 14px;
     position: absolute;
-    left: 50%;
-    transform: translate(-50%, 50%);
+    top: 50%;
+    left: 0;
+    transform: translate(-50%, -50%);
     z-index: 10;
     box-sizing: border-box;
 }
 
-/* Tick label column */
-.wxpp-zoom-tick-col {
+/* Tick row below slider */
+.wxpp-zoom-tick-row {
     position: relative;
-    flex: 1;
-    min-width: 30px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-top: -4px;
 }
-.wxpp-zoom-tick {
+.wxpp-zoom-tick-h {
     position: absolute;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 4px;
-    left: 0;
-    transform: translateY(50%);
-    white-space: nowrap;
 }
-.wxpp-zoom-tick-line {
-    width: 5px;
-    height: 1px;
+.wxpp-zoom-tick-h-line {
+    width: 1px;
+    height: 3px;
     background: var(--mds-color-theme-control-inactive-normal, rgba(255,255,255,0.35));
     flex-shrink: 0;
 }
-.wxpp-zoom-tick-label {
-    font-size: 10px;
+.wxpp-zoom-tick-h-label {
+    font-size: 9px;
     font-family: inherit;
-    color: var(--mds-color-theme-text-secondary-normal, rgba(255,255,255,0.55));
+    color: var(--mds-color-theme-text-secondary-normal, rgba(255,255,255,0.50));
     line-height: 1;
+    margin-top: 2px;
+    white-space: nowrap;
 }
     `;
 
@@ -196,6 +222,14 @@
     }
 
     function clamp(v) { return Math.min(MAX, Math.max(MIN, v)); }
+
+    function clampPan(zoom, x, y) {
+        const half = 0.5 / zoom;
+        return {
+            x: Math.max(half, Math.min(1 - half, x)),
+            y: Math.max(half, Math.min(1 - half, y))
+        };
+    }
 
     function createZoomControl(video) {
         const container = document.createElement('div');
@@ -212,51 +246,65 @@
         const inner = document.createElement('div');
         inner.className = 'wxpp-zoom-inner';
 
-        const trackCol = document.createElement('div');
-        trackCol.className = 'wxpp-zoom-track-col';
+        // ── Minimap ──
+        const minimap = document.createElement('div');
+        minimap.className = 'wxpp-zoom-minimap';
+        minimap.title = 'Drag to pan';
+        minimap.setAttribute('aria-label', 'Pan view');
+        const minimapView = document.createElement('div');
+        minimapView.className = 'wxpp-zoom-minimap-view';
+        minimap.appendChild(minimapView);
 
-        const range = document.createElement('div');
-        range.className = 'wxpp-zoom-range';
-        range.setAttribute('role', 'slider');
-        range.setAttribute('tabindex', '0');
-        range.setAttribute('aria-valuemin', String(MIN));
-        range.setAttribute('aria-valuemax', String(MAX));
-        range.setAttribute('aria-label', 'Zoom');
+        // ── Horizontal zoom slider ──
+        const hslider = document.createElement('div');
+        hslider.className = 'wxpp-zoom-hslider';
+        hslider.setAttribute('role', 'slider');
+        hslider.setAttribute('tabindex', '0');
+        hslider.setAttribute('aria-valuemin', String(MIN));
+        hslider.setAttribute('aria-valuemax', String(MAX));
+        hslider.setAttribute('aria-label', 'Zoom');
 
-        const bar      = document.createElement('div'); bar.className = 'wxpp-zoom-range-bar';
-        const progress = document.createElement('div'); progress.className = 'wxpp-zoom-range-progress';
-        const point    = document.createElement('div'); point.className = 'wxpp-zoom-range-point';
+        const hbar      = document.createElement('div'); hbar.className = 'wxpp-zoom-hslider-bar';
+        const hprogress = document.createElement('div'); hprogress.className = 'wxpp-zoom-hslider-progress';
+        const hpoint    = document.createElement('div'); hpoint.className = 'wxpp-zoom-hslider-point';
 
-        range.appendChild(bar);
-        range.appendChild(progress);
-        range.appendChild(point);
-        trackCol.appendChild(range);
+        hslider.appendChild(hbar);
+        hslider.appendChild(hprogress);
+        hslider.appendChild(hpoint);
 
-        const tickCol = document.createElement('div');
-        tickCol.className = 'wxpp-zoom-tick-col';
+        // ── Tick row ──
+        const tickRow = document.createElement('div');
+        tickRow.className = 'wxpp-zoom-tick-row';
 
-        TICKS.forEach(v => {
+        TICKS.forEach((v, i) => {
+            const isFirst = i === 0;
+            const isLast  = i === TICKS.length - 1;
+
             const tick = document.createElement('div');
-            tick.className = 'wxpp-zoom-tick';
-            tick.style.bottom = bottomPct(v);
+            tick.className = 'wxpp-zoom-tick-h';
+            tick.style.left = leftPct(v);
+            // Edge ticks: pin left/right so label stays inside popup
+            tick.style.transform = isFirst ? 'none' : isLast ? 'translateX(-100%)' : 'translateX(-50%)';
 
             const line = document.createElement('div');
-            line.className = 'wxpp-zoom-tick-line';
+            line.className = 'wxpp-zoom-tick-h-line';
 
             const label = document.createElement('span');
-            label.className = 'wxpp-zoom-tick-label';
+            label.className = 'wxpp-zoom-tick-h-label';
             label.textContent = v + 'x';
 
             tick.appendChild(line);
             tick.appendChild(label);
-            tickCol.appendChild(tick);
+            tickRow.appendChild(tick);
         });
 
         const arrow = document.createElement('div');
         arrow.className = 'wxpp-zoom-popup-arrow';
 
-        inner.appendChild(trackCol);
-        inner.appendChild(tickCol);
+        // Layout: minimap → hslider → ticks
+        inner.appendChild(minimap);
+        inner.appendChild(hslider);
+        inner.appendChild(tickRow);
         popup.appendChild(inner);
         popup.appendChild(arrow);
         container.appendChild(btn);
@@ -264,64 +312,117 @@
 
         // ── State ──
         let currentZoom = MIN;
+        let panX = 0.5, panY = 0.5;
         let dragging = false;
+        let minimapDragging = false;
         let persistEnabled = false;
         let saveTimer = null;
 
         function updateUI(zoom) {
-            const pct = bottomPct(zoom);
-            point.style.bottom = pct;
-            progress.style.height = pct;
-            range.setAttribute('aria-valuenow', String(zoom));
+            const pct = leftPct(zoom);
+            hpoint.style.left    = pct;
+            hprogress.style.width = pct;
+            hslider.setAttribute('aria-valuenow', String(zoom));
         }
-        updateUI(currentZoom);
 
-        function zoomFromY(clientY) {
-            const rect = range.getBoundingClientRect();
-            const frac = Math.max(0, Math.min(1, (rect.bottom - clientY) / rect.height));
+        function updateMinimap(zoom, px, py) {
+            minimapView.style.width  = (MM_W / zoom) + 'px';
+            minimapView.style.height = (MM_H / zoom) + 'px';
+            minimapView.style.left   = ((px - 0.5 / zoom) * MM_W) + 'px';
+            minimapView.style.top    = ((py - 0.5 / zoom) * MM_H) + 'px';
+        }
+
+        updateUI(currentZoom);
+        updateMinimap(currentZoom, panX, panY);
+
+        function zoomFromX(clientX) {
+            const rect = hslider.getBoundingClientRect();
+            const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
             return parseFloat((MIN + frac * (MAX - MIN)).toFixed(3));
         }
 
-        function applyZoom(zoom) {
+        function applyZoom(zoom, newPanX, newPanY) {
             currentZoom = clamp(zoom);
+            const p = clampPan(
+                currentZoom,
+                newPanX !== undefined ? newPanX : panX,
+                newPanY !== undefined ? newPanY : panY
+            );
+            panX = p.x;
+            panY = p.y;
+
             if (currentZoom === 1) {
                 video.style.transform = '';
                 video.style.transformOrigin = '';
                 if (video.parentElement) video.parentElement.style.overflow = '';
             } else {
+                // panX/panY = view-center fractions. Convert to transformOrigin:
+                // origin = (center * zoom - 0.5) / (zoom - 1)
+                const ox = (panX * currentZoom - 0.5) / (currentZoom - 1);
+                const oy = (panY * currentZoom - 0.5) / (currentZoom - 1);
                 video.style.transform = `scale(${currentZoom})`;
-                video.style.transformOrigin = 'center center';
+                video.style.transformOrigin = `${ox * 100}% ${oy * 100}%`;
                 if (video.parentElement) video.parentElement.style.overflow = 'hidden';
             }
             updateUI(currentZoom);
+            updateMinimap(currentZoom, panX, panY);
+
             if (persistEnabled) {
                 clearTimeout(saveTimer);
-                saveTimer = setTimeout(() => chrome.storage.local.set({ [KEY_ZOOM]: currentZoom }), 600);
+                saveTimer = setTimeout(() => chrome.storage.local.set({
+                    [KEY_ZOOM]: currentZoom,
+                    [KEY_PAN]:  { x: panX, y: panY }
+                }), 600);
             }
         }
 
         wxppEnabled('persistMediaSettings', (enabled) => {
             persistEnabled = enabled;
             if (enabled) {
-                chrome.storage.local.get(KEY_ZOOM, (r) => {
-                    if (r[KEY_ZOOM] !== undefined) applyZoom(r[KEY_ZOOM]);
+                chrome.storage.local.get([KEY_ZOOM, KEY_PAN], (r) => {
+                    const savedPan = r[KEY_PAN] || { x: 0.5, y: 0.5 };
+                    if (r[KEY_ZOOM] !== undefined) {
+                        applyZoom(r[KEY_ZOOM], savedPan.x, savedPan.y);
+                    }
                 });
             }
         });
 
-        range.addEventListener('mousedown', (e) => {
+        // Horizontal slider drag
+        hslider.addEventListener('mousedown', (e) => {
             e.preventDefault();
             dragging = true;
-            applyZoom(zoomFromY(e.clientY));
+            applyZoom(zoomFromX(e.clientX));
         });
-        document.addEventListener('mousemove', (e) => {
-            if (dragging) applyZoom(zoomFromY(e.clientY));
-        });
-        document.addEventListener('mouseup', () => { dragging = false; });
 
-        range.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp')   { e.preventDefault(); applyZoom(currentZoom + STEP); }
-            if (e.key === 'ArrowDown') { e.preventDefault(); applyZoom(currentZoom - STEP); }
+        // Minimap drag
+        function panFromEvent(e) {
+            const rect = minimap.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = (e.clientY - rect.top) / rect.height;
+            applyZoom(currentZoom, x, y);
+        }
+
+        minimap.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            minimapDragging = true;
+            minimapView.classList.add('dragging');
+            panFromEvent(e);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (dragging) applyZoom(zoomFromX(e.clientX));
+            if (minimapDragging) panFromEvent(e);
+        });
+        document.addEventListener('mouseup', () => {
+            dragging = false;
+            minimapDragging = false;
+            minimapView.classList.remove('dragging');
+        });
+
+        hslider.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowUp')   { e.preventDefault(); applyZoom(currentZoom + STEP); }
+            if (e.key === 'ArrowLeft'  || e.key === 'ArrowDown') { e.preventDefault(); applyZoom(currentZoom - STEP); }
         });
 
         btn.addEventListener('click', (e) => {
