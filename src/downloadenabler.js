@@ -12,6 +12,11 @@
 
     if (AUTH_PARAMS) API_URL += AUTH_PARAMS;
 
+    // Always hide the native download button — our button replaces it
+    const hideStyle = document.createElement('style');
+    hideStyle.textContent = '.icon-mds-download_bold { display: none !important; }';
+    (document.head || document.documentElement).appendChild(hideStyle);
+
     /**
      * Create the download button to add to the Webex video page.
      * @param {string} downloadURL URL of the video to download.
