@@ -2,7 +2,7 @@
   "name": "Webex Player Addons",
   "description": "Enhancer for Webex ",
   "homepage_url": "https://github.com/giorgiolongo/webexplayeraddons",
-  "version": "2.5.0",
+  "version": "2.5",
   "manifest_version": 3,
   "browser_specific_settings": {
     "gecko": {
