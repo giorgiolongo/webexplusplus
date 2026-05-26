@@ -1,4 +1,4 @@
-# Webex++
+# Webex Player Addons
 
 A Manifest V3 Chromium/Firefox extension that enhances the Webex recording player.
 
@@ -8,8 +8,9 @@ A Manifest V3 Chromium/Firefox extension that enhances the Webex recording playe
 - **Speed slider** — replaces the native speed button with a vertical popup slider (0.5×–3×, steps of 0.25×). Tick marks at 1×, 2×, 3×.
 - **Volume slider** — replaces the native volume button with a vertical popup slider (0–200%, snapping to multiples of 25%). Values above 100% amplify the audio beyond the browser's native limit using the Web Audio API. Speaker icon reflects the current level; turns red and shows a slash when muted. A tick mark at 100% visually separates normal volume from the amplification range.
 - **Zoom slider** — adds a magnifying-glass button that opens a popup with a 16:9 minimap and a horizontal zoom slider (1×–2×, steps of 0.1×). The minimap shows the full video as a gray rectangle; a blue rectangle represents the currently visible portion and can be dragged to pan anywhere within the video. Tick marks at 1×, 1.5×, 2×. The zoomed video stays clipped within the player canvas.
+- **Silence skip** — adds a toggle button that opens a popup panel to configure silence skipping. When enabled, the player automatically increases the playback speed (2×–16×) when silence is detected, and restores it when speech resumes. Configurable parameters include silence speed, volume threshold (%), and attack delay (seconds).
 - **Keyboard shortcuts** — `Space` toggles play/pause; `↑` / `↓` increase or decrease playback speed by 0.25×.
-- The speed, volume, and zoom popups are mutually exclusive — opening one closes the others.
+- The speed, volume, zoom, silence skip, and options popups are mutually exclusive — opening one closes the others.
 
 ### UI
 - **Hide useless elements** *(on by default)* — hides the sidebar on load and removes the follow-speaker button.
