@@ -293,24 +293,16 @@ wxp-volume-control {
         container.appendChild(btn);
         container.appendChild(popup);
 
-        // ── Web Audio state ──
+        // ── Web Audio state (shared via _wxppAudioSingleton) ──
         let audioCtx = null;
         let gainNode = null;
 
         function ensureAudio() {
             if (gainNode) return;
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const src = audioCtx.createMediaElementSource(video);
-                gainNode = audioCtx.createGain();
-                src.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                // Take over volume from native element
-                video.muted  = false;
-                video.volume = 1;
-            } catch (e) {
-                console.warn('Webex++: Web Audio unavailable', e);
-            }
+            const ch = window._wxppAudioSingleton.init(video);
+            if (!ch) return;
+            audioCtx = ch.audioCtx;
+            gainNode  = ch.gainNode;
         }
 
         // ── Slider state ──
@@ -366,7 +358,14 @@ wxp-volume-control {
                     if (r[KEY_GAIN] !== undefined) {
                         currentVal = snapTo25(r[KEY_GAIN]);
                         updateUI(currentVal);
-                        // AudioContext requires a user gesture — will be wired on first interaction
+                        // Apply gain as soon as the AudioContext is ready (first play gesture)
+                        window._wxppAudioSingleton.whenReady((chain) => {
+                            audioCtx = chain.audioCtx;
+                            gainNode  = chain.gainNode;
+                            gainNode.gain.value = currentVal / 100;
+                            video.volume = 1;
+                            video.muted  = false;
+                        });
                     }
                 });
             }
@@ -401,7 +400,7 @@ wxp-volume-control {
 
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            document.querySelectorAll('.wxpp-speed-control, .wxpp-zoom-control').forEach(el => el.classList.remove('expanded'));
+            document.querySelectorAll('.wxpp-speed-control, .wxpp-zoom-control, .wxpp-silence-control, .wxpp-options-control').forEach(el => el.classList.remove('expanded'));
             container.classList.toggle('expanded');
             // Sync to native volume only if Web Audio hasn't taken over yet
             if (container.classList.contains('expanded') && !gainNode) {

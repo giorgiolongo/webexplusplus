@@ -1,6 +1,6 @@
 (function () {
-    const KEY_SPEED  = 'savedSpeed';
-    const KEY_VOLUME = 'savedVolume';
+    const KEY_SPEED = 'savedSpeed';
+    // NOTE: volume is persisted independently by volumeslider.js (KEY_GAIN / savedVolumeGain)
 
     let saveTimer = null;
     function debounceSave(data) {
@@ -13,9 +13,15 @@
         if (!video) return;
 
         function applySettings() {
-            chrome.storage.local.get([KEY_SPEED, KEY_VOLUME], (result) => {
-                if (result[KEY_SPEED]  !== undefined) video.playbackRate = result[KEY_SPEED];
-                if (result[KEY_VOLUME] !== undefined) video.volume       = result[KEY_VOLUME];
+            chrome.storage.local.get([KEY_SPEED], function(result) {
+                if (result[KEY_SPEED] === undefined) return;
+                var rate = result[KEY_SPEED];
+                video.playbackRate = rate;
+                video.dataset.wxppBaseRate = rate;
+                // Wait for speedslider to be injected before dispatching the UI-update event
+                wxppWait('.wxpp-speed-btn', 5000).then(function() {
+                    video.dispatchEvent(new CustomEvent('wxpp-baserate-changed', { detail: rate }));
+                });
             });
         }
 
@@ -25,8 +31,14 @@
             video.addEventListener('canplay', () => setTimeout(applySettings, 0), { once: true });
         }
 
-        video.addEventListener('ratechange',   () => debounceSave({ [KEY_SPEED]:  video.playbackRate }));
-        video.addEventListener('volumechange', () => debounceSave({ [KEY_VOLUME]: video.volume }));
+        video.addEventListener('ratechange', function() {
+            // Ignore ratechange events caused by silence-skip (use the user's base rate instead)
+            if (video.dataset.wxppSkipping === 'true') return;
+            var rateToSave = video.dataset.wxppBaseRate
+                ? parseFloat(video.dataset.wxppBaseRate)
+                : video.playbackRate;
+            debounceSave({ [KEY_SPEED]: rateToSave });
+        });
     }
 
     wxppEnabled('persistMediaSettings', (enabled) => {

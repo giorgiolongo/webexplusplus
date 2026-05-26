@@ -15,17 +15,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             return true;
         }
 
-        if (request.fetchText) {
-            fetch(request.fetchText)
-                .then(response => response.text())
-                .then(response => sendResponse(response));
-            return true;
-        }
-
-        if (request.safariOpenUrl) {
-            chrome.tabs.create({url: request.safariOpenUrl});
-        }
-
         if (request.downloadURL && request.savepath) {
             chrome.downloads.download({
                 url: request.downloadURL,

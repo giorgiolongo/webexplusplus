@@ -3,12 +3,10 @@
     const MATCH = REGEX.exec(location.href);
     if (!MATCH) return;
     const SUBDOMAIN = MATCH[1];
-    const SITENAME = MATCH[2];
     const RECORDING_ID = MATCH[3];
     const AUTH_PARAMS = MATCH[4];
     var API_URL = `https://${SUBDOMAIN}.webex.com/webappng/api/v1/recordings/${RECORDING_ID}/stream`;
     var PASSWORD;
-    var API_RESPONSE = -1;
 
     if (AUTH_PARAMS) API_URL += AUTH_PARAMS;
 
@@ -164,7 +162,6 @@
         chrome.runtime.sendMessage(
             { fetchJson: API_URL, password: PASSWORD },
             (response) => {
-                API_RESPONSE = response;
                 addDownloadButtonToPage(parseParametersFromResponse(response));
             }
         );
@@ -192,9 +189,8 @@
     }
 
     // Add a listener used to receive the password for the WebEx account
-    chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((request) => {
         if (request.recPassword) PASSWORD = request.recPassword;
-        if (request.apiResponse) sendResponse(API_RESPONSE);
     });
 
     // Create an observer for the DOM

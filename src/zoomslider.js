@@ -427,7 +427,7 @@
 
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            document.querySelectorAll('.wxpp-vol-control, .wxpp-speed-control').forEach(el => el.classList.remove('expanded'));
+            document.querySelectorAll('.wxpp-vol-control, .wxpp-speed-control, .wxpp-silence-control, .wxpp-options-control').forEach(el => el.classList.remove('expanded'));
             container.classList.toggle('expanded');
         });
         document.addEventListener('click', (e) => {

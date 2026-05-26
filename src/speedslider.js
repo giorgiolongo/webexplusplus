@@ -269,8 +269,14 @@ wxp-playback-rate-control {
         container.appendChild(popup);
 
         // ── State ──
-        let currentRate = clamp(video.playbackRate || 1);
+        let currentRate = clamp(video.dataset.wxppBaseRate ? parseFloat(video.dataset.wxppBaseRate) : (video.playbackRate || 1));
+        video.dataset.wxppBaseRate = currentRate;
         let dragging = false;
+
+        video.addEventListener('wxpp-baserate-changed', (e) => {
+            currentRate = e.detail;
+            updateUI(currentRate);
+        });
 
         function updateUI(rate) {
             const pct = bottomPct(rate);
@@ -291,7 +297,10 @@ wxp-playback-rate-control {
 
         function applyRate(rate) {
             currentRate = clamp(rate);
-            video.playbackRate = currentRate;
+            video.dataset.wxppBaseRate = currentRate;
+            if (video.dataset.wxppSkipping !== 'true') {
+                video.playbackRate = currentRate;
+            }
             updateUI(currentRate);
         }
 
@@ -315,8 +324,10 @@ wxp-playback-rate-control {
 
         // Sync if page changes rate externally
         video.addEventListener('ratechange', () => {
+            if (video.dataset.wxppSkipping === 'true') return;
             if (!dragging && Math.abs(video.playbackRate - currentRate) > 0.01) {
                 currentRate = clamp(video.playbackRate);
+                video.dataset.wxppBaseRate = currentRate;
                 updateUI(currentRate);
             }
         });
@@ -324,7 +335,7 @@ wxp-playback-rate-control {
         // Toggle popup on button click
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            document.querySelectorAll('.wxpp-vol-control, .wxpp-zoom-control').forEach(el => el.classList.remove('expanded'));
+            document.querySelectorAll('.wxpp-vol-control, .wxpp-zoom-control, .wxpp-silence-control, .wxpp-options-control').forEach(el => el.classList.remove('expanded'));
             container.classList.toggle('expanded');
         });
 
@@ -370,8 +381,15 @@ wxp-playback-rate-control {
         if (!_video) return;
         e.preventDefault();
         e.stopPropagation();
-        const next = clamp(Math.round((_video.playbackRate + (e.code === 'ArrowUp' ? STEP : -STEP)) / STEP) * STEP);
-        _video.playbackRate = next;
+        let baseRate = _video.dataset.wxppBaseRate ? parseFloat(_video.dataset.wxppBaseRate) : _video.playbackRate;
+        const next = clamp(Math.round((baseRate + (e.code === 'ArrowUp' ? STEP : -STEP)) / STEP) * STEP);
+        
+        _video.dataset.wxppBaseRate = next;
+        _video.dispatchEvent(new CustomEvent('wxpp-baserate-changed', { detail: next }));
+        
+        if (_video.dataset.wxppSkipping !== 'true') {
+            _video.playbackRate = next;
+        }
     }, true);
 
     window.addEventListener('load', init);

@@ -33,7 +33,7 @@ Click the extension icon to open the popup. Three toggles are available:
 
 ### Chromium (Chrome, Edge, Brave, …)
 
-1. Download the `.zip` from the [latest release](https://github.com/giorgiolongo/webexplusplus/releases) and extract it, **or** clone this repository.
+1. Download the `.zip` from the [latest release](https://github.com/giorgiolongo/webexplayeraddons/releases) and extract it, **or** clone this repository.
 2. Open `chrome://extensions`.
 3. Enable **Developer mode** (top-right toggle).
 4. Click **Load unpacked** and select the extracted folder.
@@ -47,6 +47,11 @@ Click the extension icon to open the popup. Three toggles are available:
 > The extension stays active until Firefox is closed. To make it permanent, the extension must be signed by Mozilla — submit it to [AMO](https://addons.mozilla.org/developers/) or use Firefox Developer Edition / Nightly with `xpinstall.signatures.required` set to `false` in `about:config`.
 
 ## Changelog
+
+### v2.5.0
+- **Options**: integrated options menu directly inside the Webex player toolbar (gear icon).
+- **Cleanup**: removed extension popup (options are now inline).
+- **Cleanup**: audited the codebase and removed all dead/unused code from content scripts and background script.
 
 ### v2.4.0
 - **Volume**: extended range to 200% — values above 100% amplify audio via Web Audio API (`GainNode`); a marker on the slider track separates normal from boosted range; amplification level is persisted alongside other media settings

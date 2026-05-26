@@ -24,7 +24,8 @@
 
         function updateLabel() {
             if (!video.duration || !isFinite(video.duration)) { label.textContent = ''; return; }
-            const remaining = (video.duration - video.currentTime) / (video.playbackRate || 1);
+            let rate = video.dataset.wxppBaseRate ? parseFloat(video.dataset.wxppBaseRate) : (video.playbackRate || 1);
+            const remaining = (video.duration - video.currentTime) / rate;
             if (remaining < 0) { label.textContent = ''; return; }
             label.textContent = `(-${formatRemaining(remaining)})`;
         }
@@ -32,6 +33,7 @@
         video.addEventListener('timeupdate', updateLabel);
         video.addEventListener('ratechange', updateLabel);
         video.addEventListener('seeking',    updateLabel);
+        video.addEventListener('wxpp-baserate-changed', updateLabel);
 
         function inject() {
             if (label.isConnected) return;
